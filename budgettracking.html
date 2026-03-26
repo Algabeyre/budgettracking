@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Finwise · Persistent Finance Dashboard | Monthly Reset</title>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Chart.js CDN for circular pie chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* CSS Variables for Light/Dark Mode */
+    :root {
+      --bg-primary: #f5f7fb;
+      --bg-card: #ffffff;
+      --text-primary: #1a1e2b;
+      --text-secondary: #5b6e8c;
+      --text-muted: #7085a3;
+      --border-light: rgba(226, 232, 240, 0.6);
+      --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.05);
+      --progress-bg: #eef2f8;
+      --badge-bg: #f0f3f9;
+      --badge-text: #2c4b6e;
+      --tip-bg: #f8fafd;
+      --btn-hover: rgba(0, 0, 0, 0.05);
+      --add-btn-bg: #f0f2f5;
+      --warning-bg: #ffeae9;
+      --warning-text: #d9534f;
+      --near-limit-bg: #fff0e0;
+      --icon-color: #2c7a4d;
+      --danger-color: #e74c3c;
+      --input-bg: #ffffff;
+      --input-border: #e2e8f0;
+      --info-bg: #e3f2fd;
+    }
+
+    body.dark {
+      --bg-primary: #0a0c12;
+      --bg-card: #14161f;
+      --text-primary: #edf2f7;
+      --text-secondary: #9aaec9;
+      --text-muted: #7f8fa4;
+      --border-light: rgba(48, 54, 70, 0.8);
+      --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+      --progress-bg: #2a2f3f;
+      --badge-bg: #252b3a;
+      --badge-text: #b9c7db;
+      --tip-bg: #1a1e2c;
+      --btn-hover: rgba(255, 255, 255, 0.08);
+      --add-btn-bg: #2a2f3f;
+      --warning-bg: #3a2a2a;
+      --warning-text: #ff8a7a;
+      --near-limit-bg: #3a2e24;
+      --icon-color: #4caf7f;
+      --danger-color: #e67e73;
+      --input-bg: #1e212e;
+      --input-border: #2d3348;
+      --info-bg: #1e2a3a;
+    }
+
+    body {
+      background: var(--bg-primary);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 2rem 1.5rem;
+      color: var(--text-primary);
+      transition: background 0.3s ease, color 0.2s ease;
+    }
+
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* header */
+    .dashboard-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      gap: 1rem;
+    }
+
+    .title-section h1 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .title-section p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-top: 0.25rem;
+    }
+
+    .month-reset-badge {
+      background: var(--info-bg);
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-light);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .theme-toggle, .export-btn {
+      background: var(--bg-card);
+      border: none;
+      padding: 0.7rem 1.4rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-toggle:hover, .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* summary cards */
+    .summary-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 170px;
+      background: var(--bg-card);
+      border-radius: 28px;
+      padding: 1.4rem 1.5rem;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-light);
+    }
+
+    .stat-card h3 {
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .stat-amount {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* main 3-column layout */
+    .dashboard-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.8rem;
+    }
+
+    .pie-section {
+      flex: 1.2;
+      min-width: 280px;
+    }
+
+    .categories-section {
+      flex: 2;
+      min-width: 320px;
+    }
+
+    .insights-section {
+      flex: 1.2;
+      min-width: 260px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: 28px;
+      padding: 1.5rem;
+      margin-bottom: 1.8rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-light);
+      transition: all 0.2s;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.4rem;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .card-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pie-chart-wrapper {
+      position: relative;
+      margin: 1rem 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    canvas#spendingPieChart {
+      max-height: 260px;
+      max-width: 100%;
+    }
+
+    .category-item {
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .category-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.45rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cat-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+    }
+
+    .color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    .cat-spend {
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-wrapper {
+      background: var(--progress-bg);
+      border-radius: 40px;
+      height: 8px;
+      width: 100%;
+      overflow: hidden;
+      margin: 8px 0 6px;
+    }
+
+    .progress-fill {
+      background: #2c7a4d;
+      width: 0%;
+      height: 100%;
+      border-radius: 40px;
+      transition: width 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    .warning-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      margin-top: 6px;
+    }
+
+    .warning-text {
+      color: var(--warning-text);
+      background: var(--warning-bg);
+      padding: 0.2rem 0.6rem;
+      border-radius: 30px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .remove-cat-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px 8px;
+      border-radius: 30px;
+      transition: all 0.2s;
+    }
+
+    .remove-cat-btn:hover {
+      color: var(--danger-color);
+      background: var(--warning-bg);
+    }
+
+    .add-category-form {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 2px dashed var(--border-light);
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .form-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 40px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+    }
+
+    .form-row input:focus {
+      outline: none;
+      border-color: var(--icon-color);
+    }
+
+    .color-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 30px;
+      cursor: pointer;
+      border: 2px solid var(--border-light);
+    }
+
+    .btn-primary {
+      background: var(--icon-color);
+      border: none;
+      padding: 0 1.2rem;
+      border-radius: 40px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.85;
+      transform: scale(0.98);
+    }
+
+    .insight-stat {
+      display: flex;
+      justify-content: space-between;
+      margin: 1rem 0;
+      color: var(--text-primary);
+    }
+
+    hr {
+      margin: 1rem 0;
+      border-color: var(--border-light);
+    }
+
+    .btn-reset {
+      background: none;
+      border: none;
+      color: var(--icon-color);
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-top: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-note {
+      background: var(--info-bg);
+      border-radius: 16px;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      text-align: center;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 1000px) {
+      .dashboard-main {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="dashboard-header">
+    <div class="title-section">
+      <h1>finwise <span style="font-weight: 400;">|</span> persistent</h1>
+      <p>Auto-resets on 1st of each month · Data saved locally</p>
+    </div>
+    <div class="header-actions">
+      <div class="month-reset-badge" id="monthResetBadge">
+        <i class="fas fa-calendar-alt"></i> <span id="resetDateInfo">Loading...</span>
+      </div>
+      <button class="theme-toggle" id="themeToggleBtn"><i class="fas fa-moon"></i> <span id="themeText">Dark mode</span></button>
+      <button class="export-btn" id="exportCsvBtn"><i class="fas fa-file-csv"></i> Export CSV</button>
+    </div>
+  </div>
+
+  <!-- summary cards -->
+  <div class="summary-grid">
+    <div class="stat-card"><h3><i class="fas fa-pound-sign"></i> Total spent</h3><div class="stat-amount" id="totalSpentDisplay">£0.00</div><div class="stat-sub">this month</div></div>
+    <div class="stat-card"><h3><i class="fas fa-chart-line"></i> Budget limit</h3><div class="stat-amount" id="totalBudgetDisplay">£0.00</div><div class="stat-sub">aggregate caps</div></div>
+    <div class="stat-card"><h3><i class="fas fa-exclamation-triangle"></i> Over budget</h3><div class="stat-amount" id="overBudgetCount">0</div><div class="stat-sub">categories exceeding</div></div>
+  </div>
+
+  <div class="dashboard-main">
+    <!-- PIE CHART SECTION -->
+    <div class="pie-section">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-chart-pie"></i> Spending distribution</h2>
+          <span class="badge-light">by category</span>
+        </div>
+        <div class="pie-chart-wrapper">
+          <canvas id="spendingPieChart" width="400" height="400" style="max-width: 100%; height: auto;"></canvas>
+        </div>
+        <div class="info-note">
+          <i class="fas fa-database"></i> All data persists in your browser. Resets automatically on the 1st of each month.
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES SECTION -->
+    <div class="categories-section">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fas fa-list-ul"></i> Expense categories</h2>
+          <span class="badge-light">GBP (£)</span>
+        </div>
+        <div id="categoriesListContainer">
+          <!-- dynamic list -->
+        </div>
+        <div class="add-category-form">
+          <div style="font-weight: 500; margin-bottom: 8px;"><i class="fas fa-plus-circle"></i> Add new category</div>
+          <div class="form-row">
+            <input type="text" id="newCatName" placeholder="Category name (e.g., Coffee)" style="flex:2;">
+            <input type="number" id="newCatBudget" placeholder="Budget £" step="0.01" style="flex:1;">
+            <input type="color" id="newCatColor" value="#3b82f6" style="width: 48px; height: 40px; border-radius: 30px; cursor: pointer;">
+            <button id="addCategoryBtn" class="btn-primary"><i class="fas fa-plus"></i> Add</button>
+          </div>
+          <div class="form-row">
+            <input type="number" id="newCatSpent" placeholder="Initial spent £ (optional)" step="0.01" style="flex:2;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS SECTION -->
+    <div class="insights-section">
+      <div class="card">
+        <div class="card-header"><h2><i class="fas fa-chart-simple"></i> Budget health</h2></div>
+        <div class="insight-stat"><span>✅ Within budget</span><strong id="withinCount">0</strong></div>
+        <div class="insight-stat"><span>⚠️ Exceeded</span><strong id="exceedCount" style="color: var(--warning-text);">0</strong></div>
+        <hr>
+        <div><i class="fas fa-lightbulb"></i> <strong>Tip:</strong><p id="randomTip" style="font-size: 0.85rem; margin-top: 8px;">Track categories wisely.</p></div>
+        <button class="btn-reset" id="resetDemoBtn"><i class="fas fa-sync-alt"></i> Reset to default (keep current month)</button>
+        <button class="btn-reset" id="forceResetBtn" style="color: var(--warning-text);"><i class="fas fa-calendar-week"></i> Simulate month rollover (test reset)</button>
+      </div>
+      <div class="card">
+        <h2 style="font-size: 1.1rem;"><i class="fas fa-bell"></i> Warnings</h2>
+        <div id="warningMessages" style="font-size: 0.85rem; margin-top: 12px;"></div>
+      </div>
+    </div>
+  </div>
+  <footer>✓ Data auto-saves after every change ✓ Spending resets on the 1st of each month ✓ Categories & budgets persist</footer>
+</div>
+
+<script>
+  // ==================== PERSISTENCE WITH MONTHLY RESET LOGIC ====================
+  const STORAGE_KEY = 'finwise_app_data';
+  
+  // Default categories template
+  const DEFAULT_CATEGORIES = [
+    { id: 1, name: "Groceries", color: "#2E7D64", spent: 245.30, budget: 350.00, icon: "fa-apple-alt" },
+    { id: 2, name: "Dining Out", color: "#E67E22", spent: 412.50, budget: 200.00, icon: "fa-utensils" },
+    { id: 3, name: "Transport", color: "#3498DB", spent: 89.20, budget: 120.00, icon: "fa-bus" },
+    { id: 4, name: "Entertainment", color: "#9B59B6", spent: 210.00, budget: 150.00, icon: "fa-film" },
+    { id: 5, name: "Shopping", color: "#F1C40F", spent: 320.75, budget: 250.00, icon: "fa-shopping-bag" },
+    { id: 6, name: "Bills & Utils", color: "#1ABC9C", spent: 180.40, budget: 220.00, icon: "fa-home" }
+  ];
+
+  let categories = [];
+  let nextId = 7;
+  let currentMonthKey = ''; // format: YYYY-MM
+  let pieChart = null;
+
+  // Helper functions
+  function getCurrentMonthKey() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function getNextMonthResetDate() {
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return nextMonth;
+  }
+
+  function updateResetDateDisplay() {
+    const resetDate = getNextMonthResetDate();
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    document.getElementById('resetDateInfo').innerText = `Resets on ${resetDate.toLocaleDateString(undefined, options)}`;
+  }
+
+  // Load or initialize data with monthly reset logic
+  function loadDataWithMonthlyReset() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const currentMonth = getCurrentMonthKey();
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const savedMonth = parsed.monthKey;
+        
+        if (savedMonth === currentMonth) {
+          // Same month: restore full data including spent amounts
+          categories = parsed.categories;
+          nextId = parsed.nextId || Math.max(...categories.map(c => c.id), 0) + 1;
+          currentMonthKey = savedMonth;
+        } else {
+          // New month! Reset all spent amounts to 0, keep categories and budgets
+          console.log("🔄 New month detected! Resetting spending amounts.");
+          categories = parsed.categories.map(cat => ({
+            ...cat,
+            spent: 0  // Reset spending to zero for new month
+          }));
+          nextId = parsed.nextId || Math.max(...categories.map(c => c.id), 0) + 1;
+          currentMonthKey = currentMonth;
+          saveToLocalStorage(); // Save the reset state
+        }
+      } catch (e) {
+        console.error("Error parsing saved data", e);
+        initDefaultData(currentMonth);
+      }
+    } else {
+      initDefaultData(currentMonth);
+    }
+  }
+  
+  function initDefaultData(monthKey) {
+    categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    nextId = Math.max(...categories.map(c => c.id), 0) + 1;
+    currentMonthKey = monthKey;
+    saveToLocalStorage();
+  }
+  
+  function saveToLocalStorage() {
+    const dataToSave = {
+      monthKey: currentMonthKey,
+      categories: categories,
+      nextId: nextId,
+      lastSaved: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+  }
+  
+  // Helper: update categories and persist
+  function updateCategoriesAndPersist(newCategories) {
+    categories = newCategories;
+    saveToLocalStorage();
+    fullRefresh();
+  }
+  
+  // CRUD operations
+  function addCategory(name, budget, color, initialSpent = 0) {
+    if (!name.trim()) {
+      alert("Please enter a category name.");
+      return false;
+    }
+    if (isNaN(budget) || budget <= 0) {
+      alert("Budget must be a positive number.");
+      return false;
+    }
+    const newId = nextId++;
+    categories.push({
+      id: newId,
+      name: name.trim(),
+      color: color,
+      spent: Math.max(0, parseFloat(initialSpent) || 0),
+      budget: parseFloat(budget),
+      icon: "fa-chart-line"
+    });
+    saveToLocalStorage();
+    fullRefresh();
+    return true;
+  }
+  
+  function removeCategoryById(id) {
+    if (categories.length === 1) {
+      alert("At least one category is required for meaningful tracking.");
+      return;
+    }
+    categories = categories.filter(cat => cat.id !== id);
+    saveToLocalStorage();
+    fullRefresh();
+  }
+  
+  function addExpenseToCategory(catId, amount = 18.75) {
+    const category = categories.find(c => c.id === catId);
+    if (category) {
+      category.spent = Math.round((category.spent + amount) * 100) / 100;
+      saveToLocalStorage();
+      fullRefresh();
+    }
+  }
+  
+  function resetToDefaultData() {
+    // Reset to default categories but keep current month context (spent amounts as per default)
+    categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    nextId = Math.max(...categories.map(c => c.id), 0) + 1;
+    saveToLocalStorage();
+    fullRefresh();
+  }
+  
+  function simulateMonthRollover() {
+    // Force reset spent amounts to 0, keep categories and budgets
+    categories = categories.map(cat => ({
+      ...cat,
+      spent: 0
+    }));
+    currentMonthKey = getCurrentMonthKey(); // update to current month key
+    saveToLocalStorage();
+    fullRefresh();
+    alert("✓ Month rollover simulated! All spending has been reset to £0. Categories and budgets preserved.");
+  }
+  
+  // Format helpers
+  const formatGBP = (value) => `£${value.toFixed(2)}`;
+  
+  function computeTotals() {
+    const totalSpent = categories.reduce((sum, cat) => sum + cat.spent, 0);
+    const totalBudget = categories.reduce((sum, cat) => sum + cat.budget, 0);
+    const overCount = categories.filter(cat => cat.spent > cat.budget).length;
+    const withinBudget = categories.filter(cat => cat.spent <= cat.budget).length;
+    return { totalSpent, totalBudget, overCount, withinBudget, exceeded: overCount };
+  }
+  
+  // Update pie chart
+  function updatePieChart() {
+    const ctx = document.getElementById('spendingPieChart').getContext('2d');
+    const labels = categories.map(cat => cat.name);
+    const dataValues = categories.map(cat => cat.spent);
+    const backgroundColors = categories.map(cat => cat.color);
+    
+    if (pieChart) {
+      pieChart.data.labels = labels;
+      pieChart.data.datasets[0].data = dataValues;
+      pieChart.data.datasets[0].backgroundColor = backgroundColors;
+      pieChart.update();
+    } else {
+      pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: backgroundColors,
+            borderWidth: 2,
+            borderColor: 'var(--bg-card)',
+            hoverOffset: 12
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: 'var(--text-primary)', font: { size: 11 } } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatGBP(ctx.raw)}` } }
+          }
+        }
+      });
+    }
+  }
+  
+  // Render categories with remove and add expense buttons
+  function renderCategoriesWithActions() {
+    const container = document.getElementById("categoriesListContainer");
+    if (!container) return;
+    let html = '';
+    categories.forEach(cat => {
+      const percent = Math.min(100, (cat.spent / cat.budget) * 100);
+      const isOver = cat.spent > cat.budget;
+      const fillColor = isOver ? '#e67e22' : '#2c7a4d';
+      let warningHtml = '';
+      if (isOver) {
+        warningHtml = `<div class="warning-indicator"><i class="fas fa-exclamation-triangle warning-icon"></i><span class="warning-text">Exceeded by ${formatGBP(cat.spent - cat.budget)}</span></div>`;
+      } else if (cat.spent / cat.budget >= 0.9) {
+        warningHtml = `<div class="warning-indicator"><i class="fas fa-hourglass-half" style="color:#e67e22;"></i><span style="background:var(--near-limit-bg); padding:0.1rem 0.5rem; border-radius:30px;">⚠️ Near limit</span></div>`;
+      }
+      html += `
+        <div class="category-item" data-id="${cat.id}">
+          <div class="category-meta">
+            <div class="cat-name">
+              <span class="color-dot" style="background: ${cat.color};"></span>
+              <i class="fas ${cat.icon || 'fa-tag'}" style="color: ${cat.color};"></i>
+              <span>${cat.name}</span>
+            </div>
+            <div class="action-buttons">
+              <span class="cat-spend">${formatGBP(cat.spent)} / ${formatGBP(cat.budget)}</span>
+              <button class="add-expense-icon" data-id="${cat.id}" title="Add £18.75 expense"><i class="fas fa-plus-circle" style="color: var(--icon-color);"></i></button>
+              <button class="remove-cat-btn" data-id="${cat.id}" title="Remove category"><i class="fas fa-trash-alt"></i></button>
+            </div>
+          </div>
+          <div class="progress-wrapper"><div class="progress-fill" style="width: ${percent}%; background: ${fillColor};"></div></div>
+          ${warningHtml}
+          <div class="limit-info">Budget: ${formatGBP(cat.budget)} · ${isOver ? 'Overspent' : `${Math.round((cat.spent/cat.budget)*100)}% used`}</div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+    
+    // Attach event listeners
+    document.querySelectorAll('.remove-cat-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.getAttribute('data-id'));
+        removeCategoryById(id);
+      });
+    });
+    document.querySelectorAll('.add-expense-icon').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.getAttribute('data-id'));
+        addExpenseToCategory(id, 18.75);
+      });
+    });
+  }
+  
+  function fullRefresh() {
+    const { totalSpent, totalBudget, overCount, withinBudget } = computeTotals();
+    document.getElementById("totalSpentDisplay").innerText = formatGBP(totalSpent);
+    document.getElementById("totalBudgetDisplay").innerText = formatGBP(totalBudget);
+    document.getElementById("overBudgetCount").innerText = overCount;
+    document.getElementById("withinCount").innerText = withinBudget;
+    document.getElementById("exceedCount").innerText = overCount;
+    
+    const overCategories = categories.filter(c => c.spent > c.budget);
+    const warningsDiv = document.getElementById("warningMessages");
+    if (overCategories.length === 0) {
+      warningsDiv.innerHTML = `<div><i class="fas fa-check-circle" style="color: var(--icon-color);"></i> All categories within budget. Great!</div>`;
+    } else {
+      let warningList = `<ul style="margin-left: 1rem;">`;
+      overCategories.forEach(cat => {
+        warningList += `<li><i class="fas fa-exclamation-triangle" style="color:#e67e22;"></i> <strong>${cat.name}</strong> overspent by ${formatGBP(cat.spent - cat.budget)}</li>`;
+      });
+      warningList += `</ul>`;
+      warningsDiv.innerHTML = warningList;
+    }
+    
+    renderCategoriesWithActions();
+    updatePieChart();
+    const tips = ["Data is saved automatically! Resets on the 1st of each month.", "Add custom categories to track everything!", "Click + to simulate expenses.", "Set realistic budgets to avoid warnings.", "Dark mode saves battery & looks sleek."];
+    document.getElementById("randomTip").innerText = tips[Math.floor(Math.random() * tips.length)];
+  }
+  
+  // Export CSV
+  function exportToCSV() {
+    const headers = ["Category", "Spent (£)", "Budget (£)", "Exceeded", "Usage %"];
+    const rows = categories.map(cat => {
+      const exceededFlag = cat.spent > cat.budget ? "Yes" : "No";
+      const usagePct = ((cat.spent / cat.budget) * 100).toFixed(1);
+      return [cat.name, cat.spent.toFixed(2), cat.budget.toFixed(2), exceededFlag, `${usagePct}%`];
+    });
+    const totalSpent = categories.reduce((s,c)=>s+c.spent,0).toFixed(2);
+    rows.push(["--- TOTAL ---", totalSpent, "", "", ""]);
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `finwise_export_${new Date().toISOString().slice(0,19)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+  
+  // Theme management
+  function initTheme() {
+    const saved = localStorage.getItem('finwise-theme');
+    if (saved === 'dark') {
+      document.body.classList.add('dark');
+      updateThemeUI(true);
+    } else {
+      document.body.classList.remove('dark');
+      updateThemeUI(false);
+    }
+  }
+  
+  function updateThemeUI(isDark) {
+    const btn = document.getElementById("themeToggleBtn");
+    if (isDark) {
+      btn.innerHTML = '<i class="fas fa-sun"></i> <span>Light mode</span>';
+    } else {
+      btn.innerHTML = '<i class="fas fa-moon"></i> <span>Dark mode</span>';
+    }
+  }
+  
+  function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark');
+    localStorage.setItem('finwise-theme', isDark ? 'dark' : 'light');
+    updateThemeUI(isDark);
+    if (pieChart) pieChart.update();
+  }
+  
+  // Event listeners
+  document.getElementById("exportCsvBtn").addEventListener("click", exportToCSV);
+  document.getElementById("resetDemoBtn").addEventListener("click", resetToDefaultData);
+  document.getElementById("forceResetBtn").addEventListener("click", simulateMonthRollover);
+  document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
+  document.getElementById("addCategoryBtn").addEventListener("click", () => {
+    const name = document.getElementById("newCatName").value;
+    const budget = parseFloat(document.getElementById("newCatBudget").value);
+    const color = document.getElementById("newCatColor").value;
+    const spent = parseFloat(document.getElementById("newCatSpent").value) || 0;
+    if (addCategory(name, budget, color, spent)) {
+      document.getElementById("newCatName").value = '';
+      document.getElementById("newCatBudget").value = '';
+      document.getElementById("newCatSpent").value = '';
+    }
+  });
+  
+  // Initialize
+  loadDataWithMonthlyReset();
+  initTheme();
+  updateResetDateDisplay();
+  fullRefresh();
+</script>
+</body>
+</html>
